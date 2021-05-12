@@ -12,7 +12,7 @@ import android.widget.ImageButton
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : AppCompatActivity() {
-
+// commit point
     private val goHomeButton: ImageButton by lazy {
         findViewById<ImageButton>(R.id.goHomeButton)
     }
