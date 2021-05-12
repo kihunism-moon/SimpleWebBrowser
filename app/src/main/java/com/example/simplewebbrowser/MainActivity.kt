@@ -1,18 +1,27 @@
 package com.example.simplewebbrowser
 
 import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.inputmethod.EditorInfo
+import android.webkit.URLUtil
+import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import androidx.core.widget.ContentLoadingProgressBar
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 
 class MainActivity : AppCompatActivity() {
-// commit point
+//  commit point
+
+    private val progressBar: ContentLoadingProgressBar by lazy {
+        findViewById<ContentLoadingProgressBar>(R.id.progressBar)
+    }
+
     private val goHomeButton: ImageButton by lazy {
         findViewById<ImageButton>(R.id.goHomeButton)
     }
@@ -58,12 +67,13 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetJavaScriptEnabled")
     private fun initViews() {
         webView.apply {
+            webChromeClient = android.webkit.WebChromeClient()
             webViewClient = WebViewClient()
             settings.javaScriptEnabled = true
             webView.loadUrl(DEFAULT_URL)
         }
 
-//            대부분 https의 프로토콜을 쓴다. -> http는 보안상의 문제가 있다.
+//        대부분 https의 프로토콜을 쓴다. -> http는 보안상의 문제가 있다.
 //        안드로이드9버전 부터는 http를 지원하지 않는다.
 //        http를 사용하려면 Manifest 수정
 
@@ -84,7 +94,13 @@ class MainActivity : AppCompatActivity() {
 
         addressBar.setOnEditorActionListener { v, actionId, event ->
             if(actionId == EditorInfo.IME_ACTION_DONE) {
-                webView.loadUrl(v.text.toString())
+                val loadingUrl = v.text.toString()
+                if(URLUtil.isNetworkUrl(loadingUrl)) {
+                    webView.loadUrl(loadingUrl)
+                }else{
+                    webView.loadUrl("http://$loadingUrl")
+                }
+//                webView.loadUrl(v.text.toString())
             }
             return@setOnEditorActionListener false
         }
@@ -103,10 +119,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     inner class WebViewClient: android.webkit.WebViewClient() {
+
+        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+            super.onPageStarted(view, url, favicon)
+            progressBar.show()
+        }
+
         override fun onPageFinished(view: WebView?, url: String?) {
             super.onPageFinished(view, url)
 
             refreshLayout.isRefreshing = false
+            progressBar.hide()
+
+            goBackButton.isEnabled = webView.canGoBack()
+            goForwardButton.isEnabled = webView.canGoForward()
+            addressBar.setText(url)
+//          모바일 용 웹페이지는 앞에 m이 붙는다.
+//          ex) m.naver.com
+
+        }
+    }
+
+    inner class WebChromeClient: android.webkit.WebChromeClient() {
+
+        override fun onProgressChanged(view: WebView?, newProgress: Int) {
+            super.onProgressChanged(view, newProgress)
+
+            progressBar.progress = newProgress
         }
     }
 
